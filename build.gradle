@@ -1,0 +1,42 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.2'
+    id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    sourceCompatibility = '17'
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "org.hibernate.orm:hibernate-core"
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation('org.springframework.boot:spring-boot-starter-web')
+    implementation('org.springframework.boot:spring-boot-starter-data-jpa')
+    compileOnly 'org.projectlombok:lombok'
+    runtimeOnly 'org.postgresql:postgresql'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    implementation "org.hibernate.orm:hibernate-core"
+    implementation "jakarta.transaction:jakarta.transaction-api"
+    implementation 'com.h2database:h2'
+    implementation 'org.apache.commons:commons-dbcp2:2.12.0'
+    implementation 'org.postgresql:postgresql:42.7.3'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
