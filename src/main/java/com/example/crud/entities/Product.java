@@ -25,6 +25,7 @@ public class Product {
     private Integer quantity;
     private Date created_date;
     private Date updated_date;
+    private Boolean deleted = false;
 
     public Product(String title, String article, String description, Category category, Float price, Integer quantity, Date created_date, Date updated_date) {
         this.title = title;
