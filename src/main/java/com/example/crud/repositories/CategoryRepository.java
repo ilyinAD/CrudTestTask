@@ -11,7 +11,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-@EnableJpaRepositories("com.example.crud.repositories.CategoryRepository")
 public interface CategoryRepository extends JpaRepository<Category, UUID> {
     List<Category> findAllByDeletedFalse();
     Optional<Category> findByIdAndDeletedFalse(UUID id);

@@ -5,10 +5,10 @@ import com.example.crud.entities.Product;
 import com.example.crud.errors.MyError;
 import com.example.crud.repositories.CategoryRepository;
 import com.example.crud.repositories.ProductRepository;
-import com.example.crud.services.ProductService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -20,6 +20,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(path="/product")
+@Profile("production")
 public class ProductController {
     @Autowired
     private ProductRepository productRepository;
@@ -34,6 +35,12 @@ public class ProductController {
                                                @RequestParam(required = false) UUID category_id,
                                                @RequestParam Float price,
                                                @RequestParam Integer quantity) {
+        if (category_id != null) {
+            Category category = categoryRepository.findByIdAndDeletedFalse(category_id).orElse(null);
+            if (category == null) {
+                throw new EntityNotFoundException("Category with category_id = %s was not found".formatted(category_id));
+            }
+        }
         Date created_date = new Date(System.currentTimeMillis());
         Date updated_date = new Date(System.currentTimeMillis());
         Product product  = new Product(title, article, description, categoryRepository.getReferenceById(category_id), price,
@@ -50,68 +57,53 @@ public class ProductController {
                                               @RequestParam(required = false) UUID category_id,
                                               @RequestParam(required = false) Float price,
                                               @RequestParam(required = false) Integer quantity) {
-        try {
-            Optional<Product> optionalProduct = productRepository.findByIdAndDeletedFalse(id);
-            Product product = optionalProduct.orElse(null);
-            if (product == null) {
-                throw new EntityNotFoundException("Product with id = %s not found".formatted(id));
-            }
-            if (title != null)
-                product.setTitle(title);
-            if (article != null)
-                product.setArticle(article);
-            if (description != null)
-                product.setDescription(description);
-            if (category_id != null) {
-                Category category = categoryRepository.findById(id).orElse(null);
-                if (category == null) {
-                    throw new EntityNotFoundException("category_id = %s was not found".formatted(category_id));
-                }
-                product.setCategory(category);
-            }
-            if (price != null)
-                product.setPrice(price);
-            if (quantity != null)
-                product.setQuantity(quantity);
-            product.setUpdated_date(new Date(System.currentTimeMillis()));
-            productRepository.save(product);
-            return new ResponseEntity<>(product, HttpStatus.OK);
-        } catch (EntityNotFoundException e) {
-            return new ResponseEntity<>(new MyError(HttpStatus.NOT_FOUND.value(), e.getMessage()),
-                    HttpStatus.NOT_FOUND);
+        Optional<Product> optionalProduct = productRepository.findByIdAndDeletedFalse(id);
+        Product product = optionalProduct.orElse(null);
+        if (product == null) {
+            throw new EntityNotFoundException("Product with id = %s was not found".formatted(id));
         }
+        if (title != null)
+            product.setTitle(title);
+        if (article != null)
+            product.setArticle(article);
+        if (description != null)
+            product.setDescription(description);
+        if (category_id != null) {
+            Category category = categoryRepository.findById(id).orElse(null);
+            if (category == null) {
+                throw new EntityNotFoundException("category_id = %s was not found".formatted(category_id));
+            }
+            product.setCategory(category);
+        }
+        if (price != null)
+            product.setPrice(price);
+        if (quantity != null)
+            product.setQuantity(quantity);
+        product.setUpdated_date(new Date(System.currentTimeMillis()));
+        productRepository.save(product);
+        return new ResponseEntity<>(product, HttpStatus.OK);
     }
 
     @DeleteMapping(path="/permdelete")
     public @ResponseBody ResponseEntity<?> permanentDeleteProduct(@RequestParam UUID id) {
-        try {
-            Product product = productRepository.findById(id).orElse(null);
-            if (product == null) {
-                throw new EntityNotFoundException("Product with id = %s was not found".formatted(id));
-            }
-            productRepository.deleteById(id);
-            return new ResponseEntity<>("deleted id = %s".formatted(id), HttpStatus.OK);
-        } catch(EntityNotFoundException e) {
-            return new ResponseEntity<>(new MyError(HttpStatus.NOT_FOUND.value(), e.getMessage()),
-                    HttpStatus.NOT_FOUND);
+        Product product = productRepository.findById(id).orElse(null);
+        if (product == null) {
+            throw new EntityNotFoundException("Product with id = %s was not found".formatted(id));
         }
+        productRepository.deleteById(id);
+        return new ResponseEntity<>("deleted id = %s".formatted(id), HttpStatus.OK);
     }
 
     @DeleteMapping(path="/delete")
     public @ResponseBody ResponseEntity<?> safeDeleteProduct(@RequestParam UUID id) {
-        try {
-            Optional<Product> optionalProduct = productRepository.findByIdAndDeletedFalse(id);
-            Product product = optionalProduct.orElse(null);
-            if (product == null) {
-                throw new EntityNotFoundException("Product with id = %s was not found".formatted(id));
-            }
-            product.setDeleted(true);
-            productRepository.save(product);
-            return new ResponseEntity<>(id, HttpStatus.OK);
-        } catch (EntityNotFoundException e) {
-            return new ResponseEntity<>(new MyError(HttpStatus.NOT_FOUND.value(), e.getMessage()),
-                    HttpStatus.NOT_FOUND);
+        Optional<Product> optionalProduct = productRepository.findByIdAndDeletedFalse(id);
+        Product product = optionalProduct.orElse(null);
+        if (product == null) {
+            throw new EntityNotFoundException("Product with id = %s was not found".formatted(id));
         }
+        product.setDeleted(true);
+        productRepository.save(product);
+        return new ResponseEntity<>(id, HttpStatus.OK);
     }
 
     @GetMapping(path="/allNotDeleted")
@@ -124,19 +116,19 @@ public class ProductController {
     }
 
     @GetMapping(path="/{id}")
-    public @ResponseBody ResponseEntity read(@PathVariable UUID id) {
-        try {
-            Optional<Product> optionalProduct = productRepository.findByIdAndDeletedFalse(id);
-            Product product = optionalProduct.orElse(null);
-            if (product == null) {
-                throw new EntityNotFoundException("Product with id = %s was not found".formatted(id));
-            }
-            product.setDeleted(true);
-            productRepository.save(product);
-            return new ResponseEntity(productRepository.getReferenceById(id), HttpStatus.OK);
-        } catch (EntityNotFoundException e) {
-            return new ResponseEntity<>(new MyError(HttpStatus.NOT_FOUND.value(), e.getMessage()),
-                    HttpStatus.NOT_FOUND);
+    public @ResponseBody ResponseEntity<?> read(@PathVariable UUID id) {
+        Optional<Product> optionalProduct = productRepository.findByIdAndDeletedFalse(id);
+        Product product = optionalProduct.orElse(null);
+        if (product == null) {
+            throw new EntityNotFoundException("Product with id = %s was not found".formatted(id));
         }
+        product.setDeleted(true);
+        productRepository.save(product);
+        return new ResponseEntity(productRepository.getReferenceById(id), HttpStatus.OK);
+    }
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<?> handleException(EntityNotFoundException e) {
+        return new ResponseEntity<>(new MyError(HttpStatus.NOT_FOUND.value(), e.getMessage()),
+                HttpStatus.NOT_FOUND);
     }
 }

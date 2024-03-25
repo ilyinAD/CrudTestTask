@@ -17,7 +17,7 @@ public class Category {
     @GeneratedValue
     private UUID id;
     private String title;
-    private Boolean deleted;
+    private Boolean deleted = false;
     public Category(String title) {
         this.title = title;
     }

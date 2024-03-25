@@ -10,7 +10,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-@EnableJpaRepositories("com.example.crud.repositories.ProductRepository")
 public interface ProductRepository extends JpaRepository<Product, UUID> {
     List<Product> findAllByDeletedFalse();
 
